@@ -1,0 +1,264 @@
+#!/bin/bash
+
+SRCDIR="$(dirname "$(readlink -f "$0")")"
+APPNAME=`basename "$0"`
+
+echoerr() {
+	>&1 echo -e "\033[31mError: \033[0m$1"
+}
+
+echowarn() {
+	>&1 echo -e "\033[33mWarning: \033[0m$1"
+}
+
+if command -v 'pacman' &>/dev/null; then
+	source "$SRCDIR/zpkg.pacman"
+elif command -v 'apt' &>/dev/null; then
+	source "$SRCDIR/zpkg.apt"
+elif command -v 'dnf5' &>/dev/null; then
+	source "$SRCDIR/zpkg.dnf5"
+else
+	echoerr 'ZPKG abstraction not available for your platform.'
+	exit 1
+fi
+
+parse_cmd_tlc() {
+	if [ -z "$1" ]; then
+		echoerr 'No command given.'
+		print_help app
+		return 1
+	fi
+
+	command="$1"
+	shift
+
+	case $command in
+		install|in) _impl_install $* ;;
+		remove|re) _impl_remove $* ;;
+		download|do) _impl_download $* ;;
+		dist-update|di) _impl_dist_update $* ;;
+		
+		update|up) parse_cmd_update $* ;;
+		query|qu) parse_cmd_query $* ;;
+		clean|cl) parse_cmd_clean $* ;;
+		mark|ma) parse_cmd_mark $* ;;
+		list|li) parse_cmd_list $* ;;
+		
+		--help|-h|help)
+			print_help app
+			;;
+
+		*)
+			echoerr "Unknown command '$command'."
+			return 1
+			;;
+	esac
+
+	return $?
+}
+
+parse_cmd_update() {
+	if [ -z "$1" ]; then
+		echoerr 'No update command given.'
+		print_help update
+		return 1
+	fi
+
+	command="$1"
+	shift
+
+	case $command in
+		packages|pa) _impl_update_packages $* ;;
+		mirrors|mi) _impl_update_mirrors $* ;;
+
+		--help|-h|help)
+			print_help update
+			;;
+
+		*)
+			echoerr "Unknown update command '$command'."
+			return 1
+			;;
+	esac
+
+	return $?
+}
+
+parse_cmd_query() {
+	if [ -z "$1" ]; then
+		echoerr 'No query command given.'
+		print_help query
+		return 1
+	fi
+
+	command="$1"
+	shift
+
+	case $command in
+		provides|pr) _impl_query_provides $* ;;
+		details|de) _impl_query_details $* ;;
+		search|se) _impl_query_search $* ;;
+		files|fi) _impl_query_files $* ;;
+
+		--help|-h|help)
+			print_help query
+			;;
+
+		*)
+			echoerr "Unknown query command '$command'."
+			return 1
+			;;
+	esac
+
+	return $?
+}
+
+parse_cmd_clean() {
+	if [ -z "$1" ]; then
+		echoerr 'No clean command given.'
+		print_help clean
+		return 1
+	fi
+
+	command="$1"
+	shift
+
+	case $command in
+		unneeded|un) _impl_clean_unneeded $* ;;
+		cache|ca) _impl_clean_cache $* ;;
+
+		--help|-h|help)
+			print_help clean
+			;;
+
+		*)
+			echoerr "Unknown clean command '$command'."
+			return 1
+			;;
+	esac
+
+	return $?
+}
+
+parse_cmd_mark() {
+	if [ -z "$1" ]; then
+		echoerr 'No mark command given.'
+		print_help mark
+		return 1
+	fi
+
+	command="$1"
+	shift
+
+	case $command in
+		dependency|de) _impl_mark_dependency $* ;;
+		explicit|ex) _impl_mark_explicit $* ;;
+		hold|ho) _impl_mark_hold $* ;;
+		unhold|un) _impl_mark_unhold ;;
+
+		--help|-h|help)
+			print_help mark
+			;;
+
+		*)
+			echoerr "Unknown mark command '$command'."
+			return 1
+			;;
+	esac
+
+	return $?
+}
+
+parse_cmd_list() {
+	if [ -z "$1" ]; then
+		echoerr 'No list command given.'
+		print_help list
+		return 1
+	fi
+
+	command="$1"
+	shift
+
+	case $command in
+		installed|in) _impl_list_installed $* ;;
+		held|he) _impl_list_held $* ;;
+		updates|up) _impl_list_updates $* ;;
+
+		--help|-h|help)
+			print_help list
+			;;
+
+		*)
+			echoerr "Unknown list command '$command'."
+			return 1
+			;;
+	esac
+
+	return $?
+}
+
+print_help() {
+	case $1 in
+		app)
+			echo "Usage: $APPNAME <command>"
+			echo "ZyeByte Package Managment Abstraction"
+			echo
+			echo "Available commands:"
+			echo "  install                    Install a package."
+			echo "  remove                     Uninstall a package."
+			echo "  download                   Downloads a package without installing it."
+			echo "  update                     Performs an update of all installed packages."
+			echo "  dist-update                Upgrades to the next distribution release."
+			echo
+			echo "Available command groups:"
+			echo "  query"
+			echo "  clean"
+			echo "  mark"
+			echo "  list"
+			_impl_print_additional_help
+			;;
+		update)
+			echo "Usage: $APPNAME update <command>"
+			echo
+			echo "Available commands:"
+			echo "  packages                   Updates all packages on this system."
+			echo "  mirrors                    Updates mirrors and selects the best ones."
+			;;
+		query)
+			echo "Usage: $APPNAME query <command>"
+			echo
+			echo "Available commands:"
+			echo "  provides                   Checks which packages provide the specified file."
+			echo "  details                    Shows information of the specified package."
+			echo "  files                      Shows all files installed by the specified package."
+			echo "  search                     Search for a package by name."
+			;;
+		clean)
+			echo "Usage: $APPNAME clean <command>"
+			echo
+			echo "Available commands:"
+			echo "  unneeded                   Removes all unneeded packages."
+			echo "  cache                      Minimizes the package cache."
+			;;
+		mark)
+			echo "Usage: $APPNAME mark <command>"
+			echo
+			echo "Available commands:"
+			echo "  dependency                 Mark a package as being not explicitly installed."
+			echo "  explicit                   Mark a package as being explicitly installed."
+			echo "  hold                       Prevents a package from being upgraded in the future."
+			echo "  unhold                     Reverse effect of 'hold'."
+			;;
+		list)
+			echo "Usage: $APPNAME list <command>"
+			echo
+			echo "Available commands:"
+			echo "  installed                  List all explicitly installed packages."
+			echo "  held                       List all packages that are prevented from being upgraded."
+			echo "  updates                    List all packages that can be updated."
+			;;
+	esac
+}
+
+parse_cmd_tlc $*
+exit $?

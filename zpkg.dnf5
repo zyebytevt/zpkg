@@ -1,0 +1,84 @@
+# ZPKG implementation file for platforms providing DNF5
+
+_impl_install() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify packages to install.'
+		return 1
+	fi
+	
+	sudo dnf5 install $*
+}
+
+_impl_remove() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify packages to remove.'
+		return 1
+	fi
+
+	sudo dnf5 remove $*
+}
+
+_impl_download() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify packages to download.'
+		return 1
+	fi
+
+	sudo dnf5 download $*
+}
+
+_impl_clean_unneeded() {
+	sudo dnf5 autoremove
+}
+
+_impl_clean_cache() {
+	sudo dnf5 clean
+}
+
+_impl_update() {
+	sudo dnf5 upgrade
+}
+
+_impl_dist_update() {
+	
+}
+
+_impl_list_updates() {
+	dnf5 check-update
+}
+
+_impl_query_provides() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to check.'
+		return 1
+	fi
+
+	dnf5 repoquery $*
+}
+
+_impl_query_details() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to query.'
+		return 1
+	fi
+
+	apt show $*
+}
+
+_impl_list_installed() {
+	dnf5 repoquery --userinstalled
+}
+
+_impl_query_search() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify the name to search for.'
+		return 1
+	fi
+
+	dnf5 search $*
+}
+
+_impl_print_additional_help() {
+	echo
+	echo 'This platform uses DNF5.'
+}

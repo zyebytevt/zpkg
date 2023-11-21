@@ -1,0 +1,191 @@
+# ZPKG implementation file for platforms providing Pacman
+
+CONFIG_FILE="/etc/pacman.conf"
+
+_impl_install() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify packages to install.'
+		return 1
+	fi
+	
+	paru -Sy $*
+}
+
+_impl_remove() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify packages to remove.'
+		return 1
+	fi
+
+	paru -Rns $*
+}
+
+_impl_download() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify packages to download.'
+		return 1
+	fi
+
+	paru -Syw $*
+}
+
+_impl_clean_unneeded() {
+	packages=`pacman -Qdtq`
+	if [ -z "$packages" ]; then
+		echo 'No unneeded packages to remove.'
+		return 0
+	fi
+
+	echo $packages | xargs -o paru -Rsun
+}
+
+_impl_clean_cache() {
+	paccache -rk2
+	paccache -ruk0
+}
+
+_impl_update_packages() {
+	sudo pacman -Sy --needed archlinux-keyring && paru -Syu
+	sudo pacman -Fy
+	
+	read -p 'Reboot now? [N/y] ' -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		systemctl reboot
+	fi
+}
+
+_impl_update_mirrors() {
+	sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak &&
+	echo 'Generating mirrorlist, please wait...' &&
+	curl -s "https://archlinux.org/mirrorlist/?country=AT&protocol=https&use_mirror_status=on" | sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 -p - |  sudo tee /etc/pacman.d/mirrorlist &&
+	sudo pacman -Syy
+}
+
+_impl_dist_update() {
+	echoerr 'dist-update invalid on rolling release distributions.'
+	return 1
+}
+
+_impl_list_updates() {
+	if ! command -v 'checkupdates' &>/dev/null; then
+		pacman -Sy pacman-contrib
+	fi
+
+	checkupdates --nocolor | grep -v -e '\[ignored\]' &
+	paru -Qua --color never | grep -v -e '\[ignored\]' &
+	wait
+}
+
+_impl_query_provides() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to check.'
+		return 1
+	fi
+
+	if [ `id -u` -eq 0 ]; then
+		paru -Fy $*
+	else
+		paru -F $*
+	fi
+}
+
+_impl_query_details() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to query.'
+		return 1
+	fi
+
+	paru -Qi $* 2>/dev/null || paru -Si $*
+}
+
+_impl_query_files() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to query.'
+		return 1
+	fi
+
+	paru -Ql $*
+}
+
+_impl_list_installed() {
+	paru -Qe
+}
+
+_impl_query_search() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify the name to search for.'
+		return 1
+	fi
+
+	paru -Ss $*
+}
+
+_impl_mark_explicit() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to mark as explicitly installed.'
+		return 1
+	fi
+
+	sudo pacman -D --asexplicit $*
+}
+
+_impl_mark_dependency() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to mark as dependency.'
+		return 1
+	fi
+
+	sudo pacman -D --asdeps $*
+}
+
+_impl_mark_hold() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to hold.'
+		return 1
+	fi
+
+	sudo cp "$CONFIG_FILE" "$CONFIG_FILE.bak"
+
+	for pkg in $*; do
+		ignore="IgnorePkg = $pkg # zpkg-managed"
+
+		if ! grep -xq "$ignore" "$CONFIG_FILE"; then
+			sudo sed -i "s/\[options\]/\[options\]\n$ignore/" "$CONFIG_FILE"
+		else
+			echowarn "Package '$pkg' is already on hold."
+		fi
+	done
+}
+
+_impl_mark_unhold() {
+	if [ -z "$*" ]; then
+		echoerr 'Please specify which packages to unhold.'
+		return 1
+	fi
+
+	sudo cp "$CONFIG_FILE" "$CONFIG_FILE.bak"
+
+	for pkg in $*; do
+		ignore="IgnorePkg = $pkg # zpkg-managed"
+
+		if grep -xq "$ignore" "$CONFIG_FILE"; then
+			sudo sed -i "/^$ignore\$/d" "$CONFIG_FILE"
+		else
+			echowarn "Package '$pkg' is not holded."
+		fi
+	done
+}
+
+_impl_list_held() {
+	packages=`grep IgnorePkg "$CONFIG_FILE" | sed -e 's/IgnorePkg = *//' -e 's/#.*//' | tr -s '\n'`
+
+	for pkg in $packages; do
+		echo "$pkg"
+	done
+}
+
+_impl_print_additional_help() {
+	echo
+	echo 'This platform uses Pacman.'
+}
