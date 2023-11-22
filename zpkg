@@ -207,10 +207,10 @@ print_help() {
 			echo "  install                    Install a package."
 			echo "  remove                     Uninstall a package."
 			echo "  download                   Downloads a package without installing it."
-			echo "  update                     Performs an update of all installed packages."
 			echo "  dist-update                Upgrades to the next distribution release."
 			echo
 			echo "Available command groups:"
+			echo "  update"
 			echo "  query"
 			echo "  clean"
 			echo "  mark"

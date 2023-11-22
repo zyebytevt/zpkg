@@ -1,6 +1,7 @@
 # ZPKG implementation file for platforms providing Pacman
 
 CONFIG_FILE="/etc/pacman.conf"
+ZPKG_AUR_HELPER=${ZPKG_AUR_HELPER:-paru}
 
 _impl_install() {
 	if [ -z "$*" ]; then
@@ -8,7 +9,7 @@ _impl_install() {
 		return 1
 	fi
 	
-	paru -Sy $*
+	"$ZPKG_AUR_HELPER" -Sy $*
 }
 
 _impl_remove() {
@@ -17,7 +18,7 @@ _impl_remove() {
 		return 1
 	fi
 
-	paru -Rns $*
+	"$ZPKG_AUR_HELPER" -Rns $*
 }
 
 _impl_download() {
@@ -26,7 +27,7 @@ _impl_download() {
 		return 1
 	fi
 
-	paru -Syw $*
+	"$ZPKG_AUR_HELPER" -Syw $*
 }
 
 _impl_clean_unneeded() {
@@ -36,7 +37,7 @@ _impl_clean_unneeded() {
 		return 0
 	fi
 
-	echo $packages | xargs -o paru -Rsun
+	echo $packages | xargs -o "$ZPKG_AUR_HELPER" -Rsun
 }
 
 _impl_clean_cache() {
@@ -45,7 +46,7 @@ _impl_clean_cache() {
 }
 
 _impl_update_packages() {
-	sudo pacman -Sy --needed archlinux-keyring && paru -Syu
+	sudo pacman -Sy --needed archlinux-keyring && "$ZPKG_AUR_HELPER" -Syu
 	sudo pacman -Fy
 	
 	read -p 'Reboot now? [N/y] ' -n 1 -r
@@ -73,7 +74,7 @@ _impl_list_updates() {
 	fi
 
 	checkupdates --nocolor | grep -v -e '\[ignored\]' &
-	paru -Qua --color never | grep -v -e '\[ignored\]' &
+	"$ZPKG_AUR_HELPER" -Qua --color never | grep -v -e '\[ignored\]' &
 	wait
 }
 
@@ -84,9 +85,9 @@ _impl_query_provides() {
 	fi
 
 	if [ `id -u` -eq 0 ]; then
-		paru -Fy $*
+		"$ZPKG_AUR_HELPER" -Fy $*
 	else
-		paru -F $*
+		"$ZPKG_AUR_HELPER" -F $*
 	fi
 }
 
@@ -96,7 +97,7 @@ _impl_query_details() {
 		return 1
 	fi
 
-	paru -Qi $* 2>/dev/null || paru -Si $*
+	"$ZPKG_AUR_HELPER" -Qi $* 2>/dev/null || "$ZPKG_AUR_HELPER" -Si $*
 }
 
 _impl_query_files() {
@@ -105,11 +106,11 @@ _impl_query_files() {
 		return 1
 	fi
 
-	paru -Ql $*
+	"$ZPKG_AUR_HELPER" -Ql $*
 }
 
 _impl_list_installed() {
-	paru -Qe
+	"$ZPKG_AUR_HELPER" -Qe
 }
 
 _impl_query_search() {
@@ -118,7 +119,7 @@ _impl_query_search() {
 		return 1
 	fi
 
-	paru -Ss $*
+	"$ZPKG_AUR_HELPER" -Ss $*
 }
 
 _impl_mark_explicit() {
