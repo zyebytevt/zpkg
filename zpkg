@@ -12,11 +12,11 @@ echowarn() {
 }
 
 if command -v 'pacman' &>/dev/null; then
-	source "$SRCDIR/zpkg.pacman"
+	. "$SRCDIR/zpkg.pacman"
 elif command -v 'apt' &>/dev/null; then
-	source "$SRCDIR/zpkg.apt"
+	. "$SRCDIR/zpkg.apt"
 elif command -v 'dnf5' &>/dev/null; then
-	source "$SRCDIR/zpkg.dnf5"
+	. "$SRCDIR/zpkg.dnf5"
 else
 	echoerr 'ZPKG abstraction not available for your platform.'
 	exit 1
@@ -217,7 +217,7 @@ print_help() {
 			_impl_print_additional_help
 			;;
 		update)
-			echo "Usage: $APPNAME update <command>"
+			echo "Usage: $APPNAME update [command]"
 			echo
 			echo "Available commands:"
 			echo "* packages                   Updates all packages on this system."
@@ -234,7 +234,7 @@ print_help() {
 			echo "  search                     Search for a package by name."
 			;;
 		clean)
-			echo "Usage: $APPNAME clean <command>"
+			echo "Usage: $APPNAME clean [command]"
 			echo
 			echo "Available commands:"
 			echo "* unneeded                   Removes all unneeded packages."

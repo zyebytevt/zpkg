@@ -58,8 +58,9 @@ _impl_update_packages() {
 
 _impl_update_mirrors() {
 	sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak &&
+	echo 'Backed up old mirrorlist to /etc/pacman.d/mirrorlist.bak.' &&
 	echo 'Generating mirrorlist, please wait...' &&
-	curl -s "https://archlinux.org/mirrorlist/?country=AT&protocol=https&use_mirror_status=on" | sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 -p - |  sudo tee /etc/pacman.d/mirrorlist &&
+	curl -s "https://archlinux.org/mirrorlist/?country=AT&protocol=https&use_mirror_status=on" | sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 -p - | sudo tee /etc/pacman.d/mirrorlist &&
 	sudo pacman -Syy
 }
 
