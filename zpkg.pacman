@@ -63,8 +63,8 @@ _impl_update_mirrors() {
 	sudo pacman -Syy
 }
 
-_impl_dist_update() {
-	echoerr 'dist-update invalid on rolling release distributions.'
+_impl_update_distribution() {
+	echoerr 'Distribution update invalid on rolling release distributions.'
 	return 1
 }
 

@@ -36,7 +36,6 @@ parse_cmd_tlc() {
 		install|in) _impl_install $* ;;
 		remove|re) _impl_remove $* ;;
 		download|do) _impl_download $* ;;
-		dist-update|di) _impl_dist_update $* ;;
 		
 		update|up) parse_cmd_update $* ;;
 		query|qu) parse_cmd_query $* ;;
@@ -59,9 +58,9 @@ parse_cmd_tlc() {
 
 parse_cmd_update() {
 	if [ -z "$1" ]; then
-		echoerr 'No update command given.'
-		print_help update
-		return 1
+		echo "Assuming 'packages' as update command."
+		_impl_update_packages
+		return $?
 	fi
 
 	command="$1"
@@ -70,6 +69,7 @@ parse_cmd_update() {
 	case $command in
 		packages|pa) _impl_update_packages $* ;;
 		mirrors|mi) _impl_update_mirrors $* ;;
+		distribution|di) _impl_update_distribution $* ;;
 
 		--help|-h|help)
 			print_help update
@@ -115,9 +115,9 @@ parse_cmd_query() {
 
 parse_cmd_clean() {
 	if [ -z "$1" ]; then
-		echoerr 'No clean command given.'
-		print_help clean
-		return 1
+		echo "Assuming 'unneeded' as clean command."
+		_impl_clean_unneeded
+		return $?
 	fi
 
 	command="$1"
@@ -207,7 +207,6 @@ print_help() {
 			echo "  install                    Install a package."
 			echo "  remove                     Uninstall a package."
 			echo "  download                   Downloads a package without installing it."
-			echo "  dist-update                Upgrades to the next distribution release."
 			echo
 			echo "Available command groups:"
 			echo "  update"
@@ -221,8 +220,9 @@ print_help() {
 			echo "Usage: $APPNAME update <command>"
 			echo
 			echo "Available commands:"
-			echo "  packages                   Updates all packages on this system."
+			echo "* packages                   Updates all packages on this system."
 			echo "  mirrors                    Updates mirrors and selects the best ones."
+			echo "  distribution               Updates the distribution to the next release."
 			;;
 		query)
 			echo "Usage: $APPNAME query <command>"
@@ -237,7 +237,7 @@ print_help() {
 			echo "Usage: $APPNAME clean <command>"
 			echo
 			echo "Available commands:"
-			echo "  unneeded                   Removes all unneeded packages."
+			echo "* unneeded                   Removes all unneeded packages."
 			echo "  cache                      Minimizes the package cache."
 			;;
 		mark)
